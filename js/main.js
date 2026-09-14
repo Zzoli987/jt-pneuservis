@@ -234,24 +234,33 @@ function monthIndex(y, m) {
   return y * 12 + m;
 }
 
-function slotsForDay(dateKey) {
-  if (!dateKey) return [];
+const washSlotMinutes = {
+  week: [8 * 60, 9 * 60 + 30, 11 * 60, 12 * 60 + 30, 14 * 60, 15 * 60],
+  sat: [8 * 60, 9 * 60 + 30, 11 * 60],
+};
+
+function slotMinutesForDay(dateKey) {
   const win = openingWindow(weekdayFromKey(dateKey));
   if (!win) return [];
+  if (bookState.service === "umyvaren") return washSlotMinutes[win.key] || [];
+  const minutes = [];
+  for (let start = win.start; start + 30 <= win.end; start += 30) minutes.push(start);
+  return minutes;
+}
+
+function slotsForDay(dateKey) {
+  if (!dateKey) return [];
   const now = bratislavaParts();
   const today = bratislavaYmd();
-  const slots = [];
-  for (let minutes = win.start; minutes + 30 <= win.end; minutes += 30) {
-    const past = dateKey === today && minutes <= now.minutes;
+  return slotMinutesForDay(dateKey).map((minutes) => {
     const lunch = bookState.service === "pneuservis" && minutes === 12 * 60;
-    slots.push({
+    return {
       label: `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`,
-      past,
+      past: dateKey === today && minutes <= now.minutes,
       blocked: lunch,
       reason: lunch ? "Obedňajšia prestávka 12:00 – 12:30" : "",
-    });
-  }
-  return slots;
+    };
+  });
 }
 
 function isDaySelectable(dateKey) {
@@ -266,8 +275,12 @@ function formatChoice() {
   const weekday = daysSk[weekdayFromKey(bookState.dateKey)] || "";
   const [y, month, day] = bookState.dateKey.split("-");
   const [hour, minute] = bookState.time.split(":").map(Number);
+  const start = `${bookState.time}`;
+  if (bookState.service === "umyvaren") {
+    return `${serviceLabel[bookState.service]} · ${weekday} ${Number(day)}. ${Number(month)}. ${y} · ${start}`;
+  }
   const endMin = hour * 60 + minute + 30;
-  return `${serviceLabel[bookState.service]} · ${weekday} ${Number(day)}. ${Number(month)}. ${y} · ${bookState.time} – ${pad(Math.floor(endMin / 60))}:${pad(endMin % 60)}`;
+  return `${serviceLabel[bookState.service]} · ${weekday} ${Number(day)}. ${Number(month)}. ${y} · ${start} – ${pad(Math.floor(endMin / 60))}:${pad(endMin % 60)}`;
 }
 
 function bookContact() {
@@ -288,6 +301,10 @@ function bookVehicle() {
 function syncVehicleFields() {
   const wrap = document.querySelector("[data-book-type-wrap]");
   if (wrap) wrap.hidden = bookState.service !== "umyvaren";
+  const timeLabel = document.querySelector("[data-book-time-label]");
+  if (timeLabel) {
+    timeLabel.textContent = bookState.service === "umyvaren" ? "Čas" : "Čas · 30 minút";
+  }
 }
 
 function updateBookSummary() {
@@ -509,6 +526,11 @@ document.querySelectorAll("[data-book-service]").forEach((btn) => {
       item.setAttribute("aria-selected", String(on));
     });
     syncVehicleFields();
+    if (bookState.dateKey && !isDaySelectable(bookState.dateKey)) {
+      bookState.dateKey = "";
+      bookState.time = "";
+    }
+    renderDays();
     renderSlots();
     updateBookSummary();
   });
