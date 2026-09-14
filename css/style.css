@@ -410,6 +410,12 @@ p {
   margin-bottom: 1.8rem;
 }
 
+.section-head-center {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
 .section-head h2 {
   font-size: clamp(2.1rem, 5vw, 3.5rem);
   text-transform: uppercase;
@@ -556,19 +562,44 @@ p {
   background: var(--bg-2);
   border: 1px solid var(--line);
   border-radius: 28px;
-  padding: 1.1rem;
+  padding: 1.55rem 1.5rem 1.4rem;
   box-shadow: var(--shadow);
+}
+
+.book-block {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.book-block + .book-block,
+.book-when {
+  margin-top: 1.45rem;
+}
+
+.book-when {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.4rem;
+  align-items: stretch;
+}
+
+.book-when .book-block {
+  min-height: 100%;
 }
 
 .book-services {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.85rem;
-  margin-top: 1.4rem;
 }
 
-.book .book-label:first-child {
-  margin-top: 0;
+.book-label {
+  margin: 0;
+  color: var(--gold);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .book-service {
@@ -593,21 +624,13 @@ p {
   box-shadow: 0 16px 28px rgba(196, 146, 18, 0.16);
 }
 
-.book-label {
-  margin: 1.3rem 0 0.7rem;
-  color: var(--gold);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
 .book-cal {
   background: #fff;
   border: 1.5px solid var(--line);
   border-radius: 20px;
-  padding: 0.95rem 0.95rem 1.05rem;
-  width: min(100%, 28rem);
+  padding: 1rem;
+  width: 100%;
+  height: 100%;
 }
 
 .book-cal-nav {
@@ -710,6 +733,8 @@ p {
   margin: 0;
   color: var(--muted);
   font-weight: 700;
+  grid-column: 1 / -1;
+  padding: 0.85rem 0.2rem;
 }
 
 .book-slot {
@@ -732,8 +757,14 @@ p {
 
 .book-slots {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(5.4rem, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.55rem;
+  align-content: start;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  padding: 1rem;
+  min-height: 100%;
 }
 
 .book-fields {
@@ -777,8 +808,8 @@ p {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-top: 1.2rem;
-  padding: 1.1rem 1.2rem;
+  margin-top: 1.45rem;
+  padding: 1.15rem 1.25rem;
   border-radius: 18px;
   background: var(--ink);
   color: #fff;
@@ -1005,26 +1036,28 @@ p {
 
 .to-top {
   position: fixed;
-  right: 1.05rem;
-  bottom: 5.85rem;
+  right: 1.1rem;
+  bottom: 5.45rem;
   z-index: 45;
-  width: 68px;
-  height: 68px;
+  width: 52px;
+  height: 52px;
   padding: 0;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: transparent;
+  background: #171614;
+  color: #fff;
+  border: 1.5px solid rgba(224, 177, 58, 0.7);
   box-shadow: 0 12px 28px rgba(23, 22, 20, 0.28);
   opacity: 0;
   pointer-events: none;
   transform: translateY(8px);
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease, background 0.25s ease, color 0.25s ease;
 }
 
 .to-top svg {
-  width: 68px;
-  height: 68px;
+  width: 22px;
+  height: 22px;
   display: block;
 }
 
@@ -1035,6 +1068,8 @@ p {
 }
 
 .to-top.is-on:hover {
+  background: var(--gold);
+  color: #111;
   transform: translateY(-3px);
 }
 
@@ -1121,8 +1156,13 @@ p {
   .contact-grid,
   .work-strip,
   .book-services,
-  .book-fields {
+  .book-fields,
+  .book-when {
     grid-template-columns: 1fr;
+  }
+
+  .book-slots {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .book-cal-day,
