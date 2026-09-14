@@ -178,9 +178,9 @@ if (matchMedia("(pointer: fine)").matches) {
 
 const bookDaysEl = document.querySelector("[data-book-days]");
 const bookSlotsEl = document.querySelector("[data-book-slots]");
-const bookSummary = document.querySelector("[data-book-summary]");
 const bookChoice = document.querySelector("[data-book-choice]");
-const bookWa = document.querySelector("[data-book-wa]");
+const bookHint = document.querySelector("[data-book-hint]");
+const bookSend = document.querySelector("[data-book-send]");
 const bookState = { service: "pneuservis", dateKey: "", time: "" };
 
 const serviceLabel = {
@@ -269,21 +269,27 @@ function bookContact() {
 }
 
 function updateBookSummary() {
-  if (!bookSummary || !bookChoice || !bookWa) return;
+  if (!bookChoice || !bookSend) return;
   const contact = bookContact();
   const ready = Boolean(bookState.dateKey && bookState.time && contact.ok);
-  bookSummary.hidden = !ready;
-  if (!ready) return;
-  const text = formatChoice();
-  bookChoice.textContent = text;
-  const message = [
-    "Dobrý deň, chcel by som sa objednať.",
-    text,
-    `Meno: ${contact.name}`,
-    `E-mail: ${contact.email}`,
-    `Telefón: ${contact.phone}`,
-  ].join(" ");
-  bookWa.href = `https://wa.me/421918762732?text=${encodeURIComponent(message)}`;
+  bookSend.disabled = !ready;
+  if (ready) {
+    const text = formatChoice();
+    bookChoice.textContent = text;
+    if (bookHint) bookHint.textContent = "Odošlite dopyt na WhatsApp — termín potvrdíme.";
+    const message = [
+      "Dobrý deň, chcel by som sa objednať.",
+      text,
+      `Meno: ${contact.name}`,
+      `E-mail: ${contact.email}`,
+      `Telefón: ${contact.phone}`,
+    ].join(" ");
+    bookSend.dataset.href = `https://wa.me/421918762732?text=${encodeURIComponent(message)}`;
+  } else {
+    bookChoice.textContent = "Vyplňte kontakt, deň a čas.";
+    if (bookHint) bookHint.textContent = "Potom odošlite dopyt na WhatsApp — termín potvrdíme.";
+    bookSend.dataset.href = "https://wa.me/421918762732";
+  }
 }
 
 function renderSlots() {
@@ -481,4 +487,10 @@ if (bookDaysEl && bookSlotsEl) {
 
 document.querySelectorAll("[data-book-name], [data-book-email], [data-book-phone]").forEach((input) => {
   input.addEventListener("input", updateBookSummary);
+});
+
+bookSend?.addEventListener("click", () => {
+  if (bookSend.disabled) return;
+  const href = bookSend.dataset.href;
+  if (href) window.open(href, "_blank", "noopener");
 });

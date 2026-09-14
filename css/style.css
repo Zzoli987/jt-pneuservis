@@ -571,8 +571,9 @@ p {
   gap: 0.75rem;
 }
 
-.book-block + .book-block,
-.book-when {
+.book > .book-block + .book-block,
+.book > .book-when,
+.book > .book-send {
   margin-top: 1.45rem;
 }
 
@@ -584,6 +585,7 @@ p {
 }
 
 .book-when .book-block {
+  grid-template-rows: auto 1fr;
   min-height: 100%;
 }
 
@@ -630,7 +632,6 @@ p {
   border-radius: 20px;
   padding: 1rem;
   width: 100%;
-  height: 100%;
 }
 
 .book-cal-nav {
@@ -802,27 +803,29 @@ p {
   text-decoration: line-through;
 }
 
-.book-summary {
+.book-send {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-top: 1.45rem;
   padding: 1.15rem 1.25rem;
   border-radius: 18px;
   background: var(--ink);
   color: #fff;
 }
 
-.book-summary[hidden] {
-  display: none;
-}
-
-.book-summary span {
+.book-send span {
   display: block;
   color: #d8d2c6;
   margin-top: 0.25rem;
+}
+
+.book-send .btn-gold:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .book-actions {
@@ -831,12 +834,12 @@ p {
   gap: 0.7rem;
 }
 
-.book-summary .btn-ghost {
+.book-send .btn-ghost {
   border-color: rgba(255, 255, 255, 0.7);
   color: #fff;
 }
 
-.book-summary .btn-ghost:hover {
+.book-send .btn-ghost:hover {
   background: #fff;
   color: #111;
 }
