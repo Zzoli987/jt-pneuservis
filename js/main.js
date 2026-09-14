@@ -183,11 +183,17 @@ const bookSlotsEl = document.querySelector("[data-book-slots]");
 const bookChoice = document.querySelector("[data-book-choice]");
 const bookHint = document.querySelector("[data-book-hint]");
 const bookSend = document.querySelector("[data-book-send]");
-const bookState = { service: "pneuservis", dateKey: "", time: "" };
+const bookState = { service: "pneuservis", dateKey: "", time: "", carType: "" };
 
 const serviceLabel = {
   pneuservis: "Pneuservis",
   umyvaren: "Ručná autoumyváreň",
+};
+
+const carTypeLabel = {
+  osobne: "Osobné vozidlo",
+  suv: "SUV",
+  dodavka: "Dodávka",
 };
 
 function bratislavaYmd(date = new Date()) {
@@ -237,9 +243,12 @@ function slotsForDay(dateKey) {
   const slots = [];
   for (let minutes = win.start; minutes + 30 <= win.end; minutes += 30) {
     const past = dateKey === today && minutes <= now.minutes;
+    const lunch = bookState.service === "pneuservis" && minutes === 12 * 60;
     slots.push({
       label: `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`,
       past,
+      blocked: lunch,
+      reason: lunch ? "Obedňajšia prestávka 12:00 – 12:30" : "",
     });
   }
   return slots;
@@ -249,7 +258,7 @@ function isDaySelectable(dateKey) {
   const today = bratislavaYmd();
   if (dateKey < today) return false;
   if (weekdayFromKey(dateKey) === "Sun") return false;
-  return slotsForDay(dateKey).some((slot) => !slot.past);
+  return slotsForDay(dateKey).some((slot) => !slot.past && !slot.blocked);
 }
 
 function formatChoice() {
@@ -270,10 +279,22 @@ function bookContact() {
   return { name, email, phone, ok: Boolean(name && emailOk && phoneOk) };
 }
 
+function bookVehicle() {
+  const brand = document.querySelector("[data-book-brand]")?.value.trim() || "";
+  const typeOk = bookState.service !== "umyvaren" || Boolean(bookState.carType);
+  return { brand, type: bookState.carType, ok: Boolean(brand && typeOk) };
+}
+
+function syncVehicleFields() {
+  const wrap = document.querySelector("[data-book-type-wrap]");
+  if (wrap) wrap.hidden = bookState.service !== "umyvaren";
+}
+
 function updateBookSummary() {
   if (!bookChoice || !bookSend) return;
   const contact = bookContact();
-  const ready = Boolean(bookState.dateKey && bookState.time && contact.ok);
+  const vehicle = bookVehicle();
+  const ready = Boolean(bookState.dateKey && bookState.time && contact.ok && vehicle.ok);
   bookSend.disabled = !ready;
   if (ready) {
     const text = formatChoice();
@@ -285,10 +306,14 @@ function updateBookSummary() {
       `Meno: ${contact.name}`,
       `E-mail: ${contact.email}`,
       `Telefón: ${contact.phone}`,
-    ].join(" ");
+      `Značka auta: ${vehicle.brand}`,
+      bookState.service === "umyvaren" ? `Typ: ${carTypeLabel[vehicle.type]}` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
     bookSend.dataset.href = `https://wa.me/421918762732?text=${encodeURIComponent(message)}`;
   } else {
-    bookChoice.textContent = "Vyplňte kontakt, deň a čas.";
+    bookChoice.textContent = "Vyplňte kontakt, vozidlo, deň a čas.";
     if (bookHint) bookHint.textContent = "Potom odošlite dopyt na WhatsApp — termín potvrdíme.";
     bookSend.dataset.href = "https://wa.me/421918762732";
   }
@@ -297,6 +322,8 @@ function updateBookSummary() {
 function renderSlots() {
   if (!bookSlotsEl) return;
   bookSlotsEl.innerHTML = "";
+  const breakNote = document.querySelector("[data-book-break]");
+  if (breakNote) breakNote.hidden = bookState.service !== "pneuservis";
   if (!bookState.dateKey) {
     const hint = document.createElement("p");
     hint.className = "book-slots-hint";
@@ -306,7 +333,7 @@ function renderSlots() {
     return;
   }
   const slots = slotsForDay(bookState.dateKey);
-  const available = slots.filter((slot) => !slot.past);
+  const available = slots.filter((slot) => !slot.past && !slot.blocked);
   if (bookState.time && !available.some((slot) => slot.label === bookState.time)) {
     bookState.time = "";
   }
@@ -315,9 +342,12 @@ function renderSlots() {
     btn.type = "button";
     btn.className = "book-slot";
     btn.textContent = slot.label;
-    btn.disabled = slot.past;
+    btn.disabled = slot.past || slot.blocked;
+    btn.classList.toggle("is-break", Boolean(slot.blocked));
     btn.classList.toggle("is-on", slot.label === bookState.time);
+    if (slot.reason) btn.title = slot.reason;
     btn.addEventListener("click", () => {
+      if (slot.blocked) return;
       bookState.time = slot.label;
       renderSlots();
       updateBookSummary();
@@ -478,6 +508,8 @@ document.querySelectorAll("[data-book-service]").forEach((btn) => {
       item.classList.toggle("is-on", on);
       item.setAttribute("aria-selected", String(on));
     });
+    syncVehicleFields();
+    renderSlots();
     updateBookSummary();
   });
 });
@@ -486,9 +518,20 @@ if (bookDaysEl && bookSlotsEl) {
   renderDays();
   renderSlots();
 }
+syncVehicleFields();
 
-document.querySelectorAll("[data-book-name], [data-book-email], [data-book-phone]").forEach((input) => {
+document.querySelectorAll("[data-book-name], [data-book-email], [data-book-phone], [data-book-brand]").forEach((input) => {
   input.addEventListener("input", updateBookSummary);
+});
+
+document.querySelectorAll("[data-book-car-type]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    bookState.carType = btn.dataset.bookCarType;
+    document.querySelectorAll("[data-book-car-type]").forEach((item) => {
+      item.classList.toggle("is-on", item === btn);
+    });
+    updateBookSummary();
+  });
 });
 
 bookSend?.addEventListener("click", () => {
