@@ -101,19 +101,21 @@ document.querySelectorAll(".need-card").forEach((card) => {
   });
 });
 
-document.querySelector("[data-copy]")?.addEventListener("click", async (event) => {
-  const value = event.currentTarget.dataset.copy;
-  try {
-    await navigator.clipboard.writeText(value);
-    if (copied) {
-      copied.hidden = false;
-      setTimeout(() => {
-        copied.hidden = true;
-      }, 2200);
+document.querySelectorAll("[data-copy]").forEach((button) => {
+  button.addEventListener("click", async (event) => {
+    const value = event.currentTarget.dataset.copy;
+    try {
+      await navigator.clipboard.writeText(value);
+      if (copied) {
+        copied.hidden = false;
+        setTimeout(() => {
+          copied.hidden = true;
+        }, 2200);
+      }
+    } catch {
+      window.location.href = `tel:${value}`;
     }
-  } catch {
-    window.location.href = `tel:${value}`;
-  }
+  });
 });
 
 const spyLinks = [...document.querySelectorAll("[data-spy]")];

@@ -24,14 +24,14 @@
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/style.css?v=31" />
+    <link rel="stylesheet" href="css/style.css?v=33" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "AutomotiveBusiness",
         "name": "JT Pneuservis & Autoumyváreň",
         "image": "images/logo.png",
-        "telephone": "+421918762732",
+        "telephone": ["+421918762732", "+421949134507"],
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "Šurianska cesta 21.A",
@@ -71,8 +71,11 @@
         <a href="#hodiny" data-spy>Hodiny</a>
         <a href="#faq" data-spy>Otázky</a>
         <a href="#kontakt" data-spy>Kontakt</a>
-        <a class="nav-call btn-magnet" href="tel:+421918762732">0918 762 732</a>
       </nav>
+      <div class="nav-calls">
+        <a class="nav-call btn-magnet" href="tel:+421918762732">0918 762 732</a>
+        <a class="nav-call btn-magnet" href="tel:+421949134507">0949 134 507</a>
+      </div>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links" aria-label="Menu">
         <span></span><span></span><span></span>
       </button>
@@ -102,9 +105,9 @@
       <div class="marquee" aria-hidden="true">
         <div class="marquee-track">
           <span>Oprava defektov</span><span>Výmena pneumatiky</span><span>Vyváženie kolies</span><span>Predaj pneumatík a diskov</span>
-          <span>Kompletka</span><span>Vonkajšie umytie</span><span>Vnútorné čistenie</span><span>Tepovanie</span>
+          <span>Kompletné umytie s čistením</span><span>Vonkajšie umytie</span><span>Vnútorné čistenie</span><span>Tepovanie</span>
           <span>Oprava defektov</span><span>Výmena pneumatiky</span><span>Vyváženie kolies</span><span>Predaj pneumatík a diskov</span>
-          <span>Kompletka</span><span>Vonkajšie umytie</span><span>Vnútorné čistenie</span><span>Tepovanie</span>
+          <span>Kompletné umytie s čistením</span><span>Vonkajšie umytie</span><span>Vnútorné čistenie</span><span>Tepovanie</span>
         </div>
       </div>
 
@@ -159,11 +162,11 @@
               <h3>Ručná autoumyváreň</h3>
             </header>
             <div class="need-grid">
-              <button class="need-card" type="button" data-need="kompletka" data-say="Kompletka — vonkajšie umytie a vnútorné čistenie">
+              <button class="need-card" type="button" data-need="kompletne" data-say="Kompletné umytie s čistením — vonkajšie umytie a vnútorné čistenie">
                 <span class="need-icon" aria-hidden="true">
                   <svg viewBox="0 0 48 48" fill="none"><path d="M12 28h24l-3-8H15l-3 8Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><circle cx="18" cy="30" r="3" stroke="currentColor" stroke-width="2"/><circle cx="30" cy="30" r="3" stroke="currentColor" stroke-width="2"/><path d="M16 16h6M26 14l2 4M34 16l3 3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
                 </span>
-                <strong>Kompletka</strong>
+                <strong>Kompletné umytie s čistením</strong>
                 <span>Vonkajšie umytie a vnútorné čistenie.</span>
               </button>
               <button class="need-card" type="button" data-need="vonkajsie" data-say="Vonkajšie umytie">
@@ -317,7 +320,7 @@
           </details>
           <details class="reveal">
             <summary>Robíte aj vnútorné čistenie?</summary>
-            <p>Áno. Vonkajšie umytie, vnútorné čistenie, kompletka aj tepovanie čalúnenia.</p>
+            <p>Áno. Vonkajšie umytie, vnútorné čistenie, kompletné umytie s čistením aj tepovanie čalúnenia.</p>
           </details>
         </div>
       </section>
@@ -333,6 +336,10 @@
             <button class="copy-line" type="button" data-copy="+421918762732">
               <span>Telefón · kliknite a skopírujte</span>
               +421 918 762 732
+            </button>
+            <button class="copy-line" type="button" data-copy="+421949134507">
+              <span>Telefón · kliknite a skopírujte</span>
+              +421 949 134 507
             </button>
             <a class="contact-line" href="https://wa.me/421918762732" target="_blank" rel="noopener">
               <span>WhatsApp</span>
@@ -382,6 +389,6 @@
       <p>© <span data-year>2026</span> Jóba Tamás. Všetky práva vyhradené.</p>
     </footer>
 
-    <script src="js/main.js?v=31"></script>
+    <script src="js/main.js?v=33"></script>
   </body>
 </html>
