@@ -24,7 +24,7 @@
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/style.css?v=33" />
+    <link rel="stylesheet" href="css/style.css?v=35" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -67,18 +67,21 @@
       </a>
       <nav class="nav-links" id="nav-links" aria-label="Hlavné menu">
         <a href="#sluzby" data-spy>Služby</a>
+        <a href="#cennik" data-spy>Cenník</a>
         <a href="#termin" data-spy>Termín</a>
         <a href="#hodiny" data-spy>Hodiny</a>
         <a href="#faq" data-spy>Otázky</a>
         <a href="#kontakt" data-spy>Kontakt</a>
       </nav>
-      <div class="nav-calls">
-        <a class="nav-call btn-magnet" href="tel:+421918762732">0918 762 732</a>
-        <a class="nav-call btn-magnet" href="tel:+421949134507">0949 134 507</a>
+      <div class="nav-end">
+        <div class="nav-calls">
+          <a class="nav-call btn-magnet" href="tel:+421918762732">0918 762 732</a>
+          <a class="nav-call btn-magnet" href="tel:+421949134507">0949 134 507</a>
+        </div>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
       </div>
-      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links" aria-label="Menu">
-        <span></span><span></span><span></span>
-      </button>
     </header>
 
     <main>
@@ -200,6 +203,48 @@
             <span>Zavolajte a povedzte: <em data-need-say></em></span>
           </p>
           <a class="btn btn-gold btn-magnet" href="tel:+421918762732">Zavolať 0918 762 732</a>
+        </div>
+      </section>
+
+      <section class="section" id="cennik">
+        <div class="section-head reveal">
+          <p class="eyebrow">Cenník</p>
+          <h2>Ručná autoumyváreň</h2>
+          <p>Ceny podľa typu vozidla. Presnú sumu povieme na prevádzke.</p>
+        </div>
+
+        <div class="cennik-board reveal">
+          <table class="cennik-table">
+            <caption class="sr-only">Cenník ručného umytia: osobné, SUV a dodávka</caption>
+            <thead>
+              <tr>
+                <th scope="col"><span class="sr-only">Služba</span></th>
+                <th scope="col">Osobné</th>
+                <th scope="col">SUV</th>
+                <th scope="col">Dodávka</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Vonkajšie umytie</th>
+                <td data-car="Osobné">od 10 – 15 €</td>
+                <td data-car="SUV">od 10 – 20 €</td>
+                <td data-car="Dodávka">od 15 – 25 €</td>
+              </tr>
+              <tr>
+                <th scope="row">Vnútorné čistenie</th>
+                <td data-car="Osobné">od 10 – 15 €</td>
+                <td data-car="SUV">od 10 – 20 €</td>
+                <td data-car="Dodávka">od 15 – 25 €</td>
+              </tr>
+              <tr class="is-complete">
+                <th scope="row">Kompletné umytie s čistením</th>
+                <td data-car="Osobné">od 20 – 30 €</td>
+                <td data-car="SUV">od 25 – 40 €</td>
+                <td data-car="Dodávka">od 30 – 50 €</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -389,6 +434,6 @@
       <p>© <span data-year>2026</span> Jóba Tamás. Všetky práva vyhradené.</p>
     </footer>
 
-    <script src="js/main.js?v=33"></script>
+    <script src="js/main.js?v=35"></script>
   </body>
 </html>
