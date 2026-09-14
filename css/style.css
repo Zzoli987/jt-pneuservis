@@ -602,14 +602,116 @@ p {
   text-transform: uppercase;
 }
 
-.book-days {
-  display: flex;
-  gap: 0.55rem;
-  overflow-x: auto;
-  padding-bottom: 0.35rem;
+.book-cal {
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 20px;
+  padding: 0.95rem 0.95rem 1.05rem;
+  width: min(100%, 28rem);
 }
 
-.book-day,
+.book-cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.book-cal-nav strong {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.book-cal-shift {
+  width: 42px;
+  height: 42px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.book-cal-shift:hover:not(:disabled) {
+  border-color: var(--gold);
+  background: #fff8e8;
+}
+
+.book-cal-shift:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.book-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.book-cal-dow {
+  padding: 0.2rem 0 0.45rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.book-cal-day {
+  appearance: none;
+  aspect-ratio: 1;
+  min-height: 42px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.book-cal-day:hover:not(:disabled) {
+  border-color: var(--line);
+  background: var(--bg);
+}
+
+.book-cal-day.is-today:not(.is-on) {
+  box-shadow: inset 0 0 0 1.5px var(--gold);
+}
+
+.book-cal-day.is-on {
+  border-color: var(--gold);
+  background: #fff8e8;
+}
+
+.book-cal-day:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.book-cal-day.is-outside {
+  opacity: 0.28;
+}
+
+.book-cal-choice {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.book-slots-hint {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .book-slot {
   appearance: none;
   border: 1.5px solid var(--line);
@@ -618,28 +720,14 @@ p {
   cursor: pointer;
   color: inherit;
   font: inherit;
+  min-height: 46px;
+  font-weight: 800;
+  font-size: 0.88rem;
 }
 
-.book-day {
-  flex: 0 0 auto;
-  min-width: 4.8rem;
-  padding: 0.7rem 0.65rem;
-  text-align: center;
-}
-
-.book-day small {
-  display: block;
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.book-day strong {
-  display: block;
-  margin-top: 0.2rem;
-  font-size: 0.95rem;
+.book-slot.is-on {
+  border-color: var(--gold);
+  background: #fff8e8;
 }
 
 .book-slots {
@@ -675,18 +763,6 @@ p {
 .book-field input:focus {
   outline: 2px solid var(--gold);
   border-color: var(--gold);
-}
-
-.book-slot {
-  min-height: 46px;
-  font-weight: 800;
-  font-size: 0.88rem;
-}
-
-.book-day.is-on,
-.book-slot.is-on {
-  border-color: var(--gold);
-  background: #fff8e8;
 }
 
 .book-slot:disabled {
@@ -1047,6 +1123,11 @@ p {
   .book-services,
   .book-fields {
     grid-template-columns: 1fr;
+  }
+
+  .book-cal-day,
+  .book-cal-pad {
+    min-height: 38px;
   }
 
   .work-shot img {

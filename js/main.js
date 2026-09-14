@@ -198,23 +198,36 @@ function bratislavaYmd(date = new Date()) {
 }
 
 function weekdayFromKey(dateKey) {
-  const [year, month, day] = dateKey.split("-").map(Number);
-  const noon = new Date(Date.UTC(year, month - 1, day, 11, 0, 0));
-  return new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", weekday: "short" }).format(noon);
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const dow = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay();
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dow];
 }
 
-function openDays(count = 12) {
-  const [year, month, day] = bratislavaYmd().split("-").map(Number);
-  const start = Date.UTC(year, month - 1, day);
-  const days = [];
-  for (let i = 0; i < 21 && days.length < count; i += 1) {
-    const key = bratislavaYmd(new Date(start + i * 86400000));
-    if (weekdayFromKey(key) !== "Sun") days.push(key);
-  }
-  return days;
+function mondayPad(dateKey) {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const dow = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay();
+  return (dow + 6) % 7;
+}
+
+function lastDateOfMonth(y, m) {
+  return new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
+function dateKeyFromParts(y, m, d) {
+  return `${y}-${pad(m)}-${pad(d)}`;
+}
+
+function shiftMonth(y, m, delta) {
+  const shifted = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return { year: shifted.getUTCFullYear(), month: shifted.getUTCMonth() + 1 };
+}
+
+function monthIndex(y, m) {
+  return y * 12 + m;
 }
 
 function slotsForDay(dateKey) {
+  if (!dateKey) return [];
   const win = openingWindow(weekdayFromKey(dateKey));
   if (!win) return [];
   const now = bratislavaParts();
@@ -230,19 +243,20 @@ function slotsForDay(dateKey) {
   return slots;
 }
 
-function formatDayButton(dateKey) {
-  const weekday = weekdayFromKey(dateKey);
-  const [, month, day] = dateKey.split("-");
-  return { weekday: daysSk[weekday] || weekday, date: `${Number(day)}. ${Number(month)}.` };
+function isDaySelectable(dateKey) {
+  const today = bratislavaYmd();
+  if (dateKey < today) return false;
+  if (weekdayFromKey(dateKey) === "Sun") return false;
+  return slotsForDay(dateKey).some((slot) => !slot.past);
 }
 
 function formatChoice() {
   if (!bookState.dateKey || !bookState.time) return "";
   const weekday = daysSk[weekdayFromKey(bookState.dateKey)] || "";
-  const [, month, day] = bookState.dateKey.split("-");
+  const [y, month, day] = bookState.dateKey.split("-");
   const [hour, minute] = bookState.time.split(":").map(Number);
   const endMin = hour * 60 + minute + 30;
-  return `${serviceLabel[bookState.service]} · ${weekday} ${Number(day)}. ${Number(month)}. · ${bookState.time} – ${pad(Math.floor(endMin / 60))}:${pad(endMin % 60)}`;
+  return `${serviceLabel[bookState.service]} · ${weekday} ${Number(day)}. ${Number(month)}. ${y} · ${bookState.time} – ${pad(Math.floor(endMin / 60))}:${pad(endMin % 60)}`;
 }
 
 function bookContact() {
@@ -275,10 +289,18 @@ function updateBookSummary() {
 function renderSlots() {
   if (!bookSlotsEl) return;
   bookSlotsEl.innerHTML = "";
+  if (!bookState.dateKey) {
+    const hint = document.createElement("p");
+    hint.className = "book-slots-hint";
+    hint.textContent = "Vyberte deň v kalendári.";
+    bookSlotsEl.append(hint);
+    updateBookSummary();
+    return;
+  }
   const slots = slotsForDay(bookState.dateKey);
   const available = slots.filter((slot) => !slot.past);
   if (bookState.time && !available.some((slot) => slot.label === bookState.time)) {
-    bookState.time = available[0]?.label || "";
+    bookState.time = "";
   }
   slots.forEach((slot) => {
     const btn = document.createElement("button");
@@ -297,29 +319,147 @@ function renderSlots() {
   updateBookSummary();
 }
 
+const monthsSk = [
+  "Január",
+  "Február",
+  "Marec",
+  "Apríl",
+  "Máj",
+  "Jún",
+  "Júl",
+  "August",
+  "September",
+  "Október",
+  "November",
+  "December",
+];
+const weekdaysShortSk = ["Po", "Ut", "St", "Št", "Pi", "So", "Ne"];
+const todayParts = bratislavaYmd().split("-").map(Number);
+const bookCalView = { year: todayParts[0], month: todayParts[1] };
+const maxCalMonth = shiftMonth(todayParts[0], todayParts[1], 3);
+
+function selectDay(dateKey) {
+  bookState.dateKey = dateKey;
+  bookState.time = "";
+  renderDays();
+  renderSlots();
+}
+
+function appendCalDay(grid, { key, label, outside }) {
+  const today = bratislavaYmd();
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "book-cal-day";
+  btn.textContent = String(label);
+  btn.dataset.date = key;
+  const selectable = !outside && isDaySelectable(key);
+  btn.disabled = !selectable;
+  btn.classList.toggle("is-outside", Boolean(outside));
+  btn.classList.toggle("is-today", key === today);
+  btn.classList.toggle("is-on", key === bookState.dateKey);
+  btn.setAttribute("aria-label", key);
+  btn.setAttribute("aria-pressed", String(key === bookState.dateKey));
+  if (selectable) btn.addEventListener("click", () => selectDay(key));
+  grid.append(btn);
+}
+
 function renderDays() {
   if (!bookDaysEl) return;
-  const days = openDays();
-  if (!bookState.dateKey) {
-    const firstOpen = days.find((key) => slotsForDay(key).some((slot) => !slot.past)) || days[0];
-    bookState.dateKey = firstOpen;
-  }
+  const minMonth = monthIndex(todayParts[0], todayParts[1]);
+  const maxMonth = monthIndex(maxCalMonth.year, maxCalMonth.month);
+  const viewMonth = monthIndex(bookCalView.year, bookCalView.month);
+  const lastDay = lastDateOfMonth(bookCalView.year, bookCalView.month);
+  const firstKey = dateKeyFromParts(bookCalView.year, bookCalView.month, 1);
+  const padCount = mondayPad(firstKey);
+  const prev = shiftMonth(bookCalView.year, bookCalView.month, -1);
+  const prevLast = lastDateOfMonth(prev.year, prev.month);
+
   bookDaysEl.innerHTML = "";
-  days.forEach((key) => {
-    const meta = formatDayButton(key);
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "book-day";
-    btn.innerHTML = `<small>${meta.weekday.slice(0, 2)}</small><strong>${meta.date}</strong>`;
-    btn.classList.toggle("is-on", key === bookState.dateKey);
-    btn.addEventListener("click", () => {
-      bookState.dateKey = key;
-      bookState.time = "";
-      renderDays();
-      renderSlots();
-    });
-    bookDaysEl.append(btn);
+
+  const nav = document.createElement("div");
+  nav.className = "book-cal-nav";
+
+  const prevBtn = document.createElement("button");
+  prevBtn.type = "button";
+  prevBtn.className = "book-cal-shift";
+  prevBtn.setAttribute("aria-label", "Predchádzajúci mesiac");
+  prevBtn.textContent = "‹";
+  prevBtn.disabled = viewMonth <= minMonth;
+  prevBtn.addEventListener("click", () => {
+    const nextView = shiftMonth(bookCalView.year, bookCalView.month, -1);
+    bookCalView.year = nextView.year;
+    bookCalView.month = nextView.month;
+    renderDays();
   });
+
+  const title = document.createElement("strong");
+  title.textContent = `${monthsSk[bookCalView.month - 1]} ${bookCalView.year}`;
+
+  const nextBtn = document.createElement("button");
+  nextBtn.type = "button";
+  nextBtn.className = "book-cal-shift";
+  nextBtn.setAttribute("aria-label", "Ďalší mesiac");
+  nextBtn.textContent = "›";
+  nextBtn.disabled = viewMonth >= maxMonth;
+  nextBtn.addEventListener("click", () => {
+    const nextView = shiftMonth(bookCalView.year, bookCalView.month, 1);
+    bookCalView.year = nextView.year;
+    bookCalView.month = nextView.month;
+    renderDays();
+  });
+
+  nav.append(prevBtn, title, nextBtn);
+
+  const grid = document.createElement("div");
+  grid.className = "book-cal-grid";
+  grid.setAttribute("role", "grid");
+
+  weekdaysShortSk.forEach((label) => {
+    const cell = document.createElement("div");
+    cell.className = "book-cal-dow";
+    cell.textContent = label;
+    grid.append(cell);
+  });
+
+  for (let i = 0; i < padCount; i += 1) {
+    const day = prevLast - padCount + 1 + i;
+    appendCalDay(grid, {
+      key: dateKeyFromParts(prev.year, prev.month, day),
+      label: day,
+      outside: true,
+    });
+  }
+
+  for (let day = 1; day <= lastDay; day += 1) {
+    appendCalDay(grid, {
+      key: dateKeyFromParts(bookCalView.year, bookCalView.month, day),
+      label: day,
+      outside: false,
+    });
+  }
+
+  const filled = padCount + lastDay;
+  const tail = (7 - (filled % 7)) % 7;
+  const nextMonth = shiftMonth(bookCalView.year, bookCalView.month, 1);
+  for (let day = 1; day <= tail; day += 1) {
+    appendCalDay(grid, {
+      key: dateKeyFromParts(nextMonth.year, nextMonth.month, day),
+      label: day,
+      outside: true,
+    });
+  }
+
+  const choice = document.createElement("p");
+  choice.className = "book-cal-choice";
+  if (bookState.dateKey) {
+    const weekday = daysSk[weekdayFromKey(bookState.dateKey)] || "";
+    const [, month, day] = bookState.dateKey.split("-");
+    choice.textContent = `Vybraný deň: ${weekday} ${Number(day)}. ${Number(month)}.`;
+  } else {
+    choice.textContent = "Kliknite na deň — nedeľa je zatvorená.";
+  }
+
+  bookDaysEl.append(nav, grid, choice);
 }
 
 document.querySelectorAll("[data-book-service]").forEach((btn) => {
