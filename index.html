@@ -24,7 +24,7 @@
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/style.css?v=23" />
+    <link rel="stylesheet" href="css/style.css?v=24" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -190,25 +190,10 @@
         <div class="section-head reveal">
           <p class="eyebrow">Termín</p>
           <h2>Objednajte sa</h2>
-          <p>Vyberte pneuservis alebo ručnú autoumyváreň, deň, 30-minútové okno a vyplňte kontakt. Termín potvrdíme telefonicky alebo na WhatsApp.</p>
+          <p>Najprv vyplňte meno, e-mail a telefón, potom vyberte deň a 30-minútové okno. Termín potvrdíme telefonicky alebo na WhatsApp.</p>
         </div>
 
         <div class="book reveal">
-          <div class="book-services" role="tablist" aria-label="Typ služby">
-            <button class="book-service is-on" type="button" role="tab" aria-selected="true" data-book-service="pneuservis">
-              Pneuservis
-            </button>
-            <button class="book-service" type="button" role="tab" aria-selected="false" data-book-service="umyvaren">
-              Ručná autoumyváreň
-            </button>
-          </div>
-
-          <p class="book-label">Deň</p>
-          <div class="book-days" data-book-days></div>
-
-          <p class="book-label">Čas · 30 minút</p>
-          <div class="book-slots" data-book-slots></div>
-
           <p class="book-label">Kontakt</p>
           <div class="book-fields">
             <label class="book-field">
@@ -224,6 +209,21 @@
               <input type="tel" name="phone" autocomplete="tel" data-book-phone inputmode="tel" required />
             </label>
           </div>
+
+          <div class="book-services" role="tablist" aria-label="Typ služby">
+            <button class="book-service is-on" type="button" role="tab" aria-selected="true" data-book-service="pneuservis">
+              Pneuservis
+            </button>
+            <button class="book-service" type="button" role="tab" aria-selected="false" data-book-service="umyvaren">
+              Ručná autoumyváreň
+            </button>
+          </div>
+
+          <p class="book-label">Deň</p>
+          <div class="book-days" data-book-days></div>
+
+          <p class="book-label">Čas · 30 minút</p>
+          <div class="book-slots" data-book-slots></div>
 
           <div class="book-summary" data-book-summary hidden>
             <p>
@@ -373,6 +373,6 @@
       <p>© <span data-year>2026</span> Jóba Tamás. Všetky práva vyhradené.</p>
     </footer>
 
-    <script src="js/main.js?v=23"></script>
+    <script src="js/main.js?v=24"></script>
   </body>
 </html>
