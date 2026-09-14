@@ -153,7 +153,7 @@ p {
   position: relative;
   isolation: isolate;
   display: grid;
-  align-items: end;
+  align-items: center;
   justify-items: center;
   min-height: min(84vh, 780px);
   overflow: hidden;
@@ -176,13 +176,14 @@ p {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: linear-gradient(
-    to top,
-    rgba(17, 16, 14, 0.72) 0%,
-    rgba(17, 16, 14, 0.28) 34%,
-    rgba(17, 16, 14, 0.06) 58%,
-    transparent 74%
-  );
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(17, 16, 14, 0.58) 0%,
+      rgba(17, 16, 14, 0.28) 42%,
+      rgba(17, 16, 14, 0.08) 68%,
+      transparent 82%
+    );
 }
 
 .hero-copy {
@@ -192,7 +193,7 @@ p {
   justify-items: center;
   text-align: center;
   width: min(760px, calc(100% - 2.4rem));
-  padding: 2.2rem 0 2.5rem;
+  padding: 1.5rem 0;
 }
 
 .hero .eyebrow {
