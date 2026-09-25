@@ -186,7 +186,7 @@ const bookForm = document.querySelector(".book");
 const bookSendButtons = document.querySelectorAll("[data-book-send]");
 const bookShopMail = "info@jtpneu.sk";
 const bookMailKey = "b50897b0-fa29-49e4-bda8-4fa5b72c8515";
-const bookConfirmUrl = "https://teseventynine.tarhely.eu/send.php";
+const bookConfirmUrls = ["https://form.jtpneu.sk/send.php", "http://form.jtpneu.sk/send.php"];
 const bookState = { service: "pneuservis", dateKey: "", time: "", carType: "" };
 const bookTouched = {
   name: false,
@@ -687,26 +687,30 @@ function sendBookingEmail(message, contact) {
     return data;
   });
 
-  const confirmSend = fetch(bookConfirmUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      name: contact.name,
-      email: contact.email,
-      phone: contact.phone,
-      message,
-      website: "",
-    }),
-  }).then(async (res) => {
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.ok === false) {
-      throw new Error("confirm send failed");
-    }
-    return data;
-  });
+  function postConfirm(url) {
+    return fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone,
+        message,
+        website: "",
+      }),
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        throw new Error("confirm send failed");
+      }
+      return data;
+    });
+  }
+
+  const confirmSend = postConfirm(bookConfirmUrls[0]).catch(() => postConfirm(bookConfirmUrls[1]));
 
   Promise.allSettled([shopSend, confirmSend])
     .then(([shop, confirm]) => {
