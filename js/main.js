@@ -718,6 +718,7 @@ function sendBookingRequest(channel) {
     service: bookState.service,
     dateKey: bookState.dateKey,
     time: bookState.time,
+    message,
     website: "",
   };
 
