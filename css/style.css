@@ -915,6 +915,11 @@ p {
   background: #fff;
 }
 
+.book-field input::placeholder {
+  color: #b9b4aa;
+  opacity: 1;
+}
+
 .book-field input:focus {
   outline: 2px solid var(--gold);
   border-color: var(--gold);
