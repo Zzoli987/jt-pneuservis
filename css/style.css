@@ -1385,6 +1385,15 @@ p {
     min-height: 70vh;
   }
 
+  .nav {
+    padding: 0.4rem 0.7rem;
+    gap: 0.45rem;
+  }
+
+  .nav-brand img {
+    width: 72px;
+  }
+
   .nav-toggle {
     display: block;
   }
@@ -1413,14 +1422,15 @@ p {
   }
 
   .nav-calls {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.25rem;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.3rem;
   }
 
   .nav-call {
-    padding: 0.28rem 0.6rem;
-    font-size: 0.75rem;
+    padding: 0.32rem 0.5rem;
+    font-size: 0.68rem;
     text-align: center;
   }
 }
