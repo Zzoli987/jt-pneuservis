@@ -185,6 +185,7 @@ const bookHint = document.querySelector("[data-book-hint]");
 const bookForm = document.querySelector(".book");
 const bookSendButtons = document.querySelectorAll("[data-book-send]");
 const bookShopMail = "info@jtpneu.sk";
+const bookMailKey = "b50897b0-fa29-49e4-bda8-4fa5b72c8515";
 const bookState = { service: "pneuservis", dateKey: "", time: "", carType: "" };
 const bookTouched = {
   name: false,
@@ -656,42 +657,50 @@ function setBookStatus(title, hint) {
 function sendBookingEmail(message, contact) {
   const emailBtn = document.querySelector('[data-book-send="email"]');
   if (emailBtn) emailBtn.disabled = true;
-  setBookStatus("Odosielam e-mail…", "Dopyt ide na prevádzku a na váš e-mail príde potvrdenie.");
-  fetch(`https://formsubmit.co/ajax/${bookShopMail}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({
-      _subject: "Objednávka termínu — JT Pneuservis",
-      _template: "table",
-      _captcha: "false",
-      _autoresponse:
-        "Ďakujeme, dopyt na termín sme dostali. Ozveme sa telefonicky alebo na WhatsApp a termín potvrdíme.\n\nJT Pneuservis & Autoumyváreň\nŠurianska cesta 21.A, 940 01 Nové Zámky\n0918 762 732 · 0949 134 507",
-      Meno: contact.name,
-      email: contact.email,
-      Telefón: contact.phone,
-      Správa: message,
-    }),
-  })
-    .then(async (res) => {
+  setBookStatus("Odosielam e-mail…", "Dopyt ide na prevádzku a na váš e-mail príde kópia.");
+
+  const payload = {
+    access_key: bookMailKey,
+    subject: "Objednávka termínu — JT Pneuservis",
+    from_name: contact.name,
+    name: contact.name,
+    email: contact.email,
+    replyto: contact.email,
+    ccemail: contact.email,
+    Telefón: contact.phone,
+    message,
+    botcheck: "",
+  };
+
+  function postMail(body) {
+    return fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(body),
+    }).then(async (res) => {
       const data = await res.json().catch(() => ({}));
-      const note = `${data.message || ""} ${data.success || ""}`.toLowerCase();
-      const needsActivate = /confirm|activat|inbox|overi/.test(note);
-      if (needsActivate) {
-        setBookStatus(
-          "Ešte treba potvrdiť odosielanie.",
-          "V schránke info@jtpneu.sk otvorte e-mail od FormSubmit a kliknite na odkaz. Potom to pôjde bez okna."
-        );
-        return;
+      if (!res.ok || data.success === false) {
+        const err = new Error(data.message || "send failed");
+        err.payload = data;
+        throw err;
       }
-      if (!res.ok || String(data.success) === "false") {
-        throw new Error(data.message || "send failed");
-      }
+      return data;
+    });
+  }
+
+  postMail(payload)
+    .catch(() => {
+      const retry = { ...payload };
+      delete retry.ccemail;
+      return postMail(retry);
+    })
+    .then(() => {
       setBookStatus(
         "Dopyt odišiel e-mailom.",
-        "Na váš e-mail sme poslali potvrdenie. Termín ešte potvrdíme telefonicky alebo na WhatsApp."
+        "Prevádzka dostala dopyt na info@jtpneu.sk. Kópia ide na váš e-mail. Termín ešte potvrdíme telefonicky alebo na WhatsApp."
       );
     })
     .catch(() => {
