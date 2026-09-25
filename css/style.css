@@ -976,6 +976,13 @@ p {
   color: #111;
 }
 
+.book-send .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .book-actions {
   display: flex;
   flex-wrap: wrap;

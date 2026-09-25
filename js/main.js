@@ -648,19 +648,70 @@ function revealAllBookErrors() {
   updateBookSummary();
 }
 
+function setBookStatus(title, hint) {
+  if (bookChoice) bookChoice.textContent = title;
+  if (bookHint) bookHint.textContent = hint;
+}
+
+function mailtoBooking(message, contact) {
+  const href = `mailto:${bookShopMail}?cc=${encodeURIComponent(contact.email)}&subject=${encodeURIComponent("Objednávka termínu — JT Pneuservis")}&body=${encodeURIComponent(message)}`;
+  window.open(href, "_blank", "noopener");
+}
+
+async function sendBookingEmail(message, contact) {
+  const emailBtn = document.querySelector('[data-book-send="email"]');
+  if (emailBtn) emailBtn.disabled = true;
+  setBookStatus("Odosielam e-mail…", "Dopyt ide na prevádzku a na váš e-mail príde potvrdenie.");
+  try {
+    const res = await fetch(`https://formsubmit.co/ajax/${bookShopMail}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        _subject: "Objednávka termínu — JT Pneuservis",
+        _template: "table",
+        _captcha: "false",
+        _autoresponse:
+          "Ďakujeme, dopyt na termín sme dostali. Ozveme sa telefonicky alebo na WhatsApp a termín potvrdíme.\n\nJT Pneuservis & Autoumyváreň\nŠurianska cesta 21.A, 940 01 Nové Zámky\n0918 762 732 · 0949 134 507",
+        Meno: contact.name,
+        email: contact.email,
+        Telefón: contact.phone,
+        Správa: message,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    const failed = !res.ok || String(data.success) === "false";
+    if (failed) throw new Error(data.message || "send failed");
+    setBookStatus(
+      "Dopyt odišiel e-mailom.",
+      "Na váš e-mail sme poslali potvrdenie. Termín ešte potvrdíme telefonicky alebo na WhatsApp."
+    );
+  } catch {
+    mailtoBooking(message, contact);
+    setBookStatus(
+      "Otvoril sa váš e-mail.",
+      "Odošlite správu v pošte — kópiu dostanete aj vy, prevádzka na info@jtpneu.sk."
+    );
+  } finally {
+    if (emailBtn) emailBtn.disabled = false;
+  }
+}
+
 function sendBooking(channel) {
   revealAllBookErrors();
-  const { ok } = bookFieldErrors();
+  const { ok, contact } = bookFieldErrors();
   if (!ok) {
     document.querySelector(".book-error:not([hidden])")?.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
   const message = bookingMessage();
-  const href =
-    channel === "email"
-      ? `mailto:${bookShopMail}?subject=${encodeURIComponent("Objednávka termínu — JT Pneuservis")}&body=${encodeURIComponent(message)}`
-      : `https://wa.me/421918762732?text=${encodeURIComponent(message)}`;
-  window.open(href, "_blank", "noopener");
+  if (channel === "email") {
+    sendBookingEmail(message, contact);
+    return;
+  }
+  window.open(`https://wa.me/421918762732?text=${encodeURIComponent(message)}`, "_blank", "noopener");
 }
 
 bookSendButtons.forEach((btn) => {
