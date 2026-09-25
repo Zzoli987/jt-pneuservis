@@ -186,6 +186,7 @@ const bookForm = document.querySelector(".book");
 const bookSendButtons = document.querySelectorAll("[data-book-send]");
 const bookShopMail = "info@jtpneu.sk";
 const bookMailKey = "b50897b0-fa29-49e4-bda8-4fa5b72c8515";
+const bookConfirmUrl = "https://teseventynine.tarhely.eu/send.php";
 const bookState = { service: "pneuservis", dateKey: "", time: "", carType: "" };
 const bookTouched = {
   name: false,
@@ -657,57 +658,75 @@ function setBookStatus(title, hint) {
 function sendBookingEmail(message, contact) {
   const emailBtn = document.querySelector('[data-book-send="email"]');
   if (emailBtn) emailBtn.disabled = true;
-  setBookStatus("Odosielam e-mail…", "Dopyt ide na prevádzku a na váš e-mail príde kópia.");
+  setBookStatus("Odosielam e-mail…", "Dopyt ide na prevádzku. Potvrdenie pošleme na váš e-mail.");
 
-  const payload = {
+  const shopPayload = {
     access_key: bookMailKey,
     subject: "Objednávka termínu — JT Pneuservis",
     from_name: contact.name,
     name: contact.name,
     email: contact.email,
     replyto: contact.email,
-    ccemail: contact.email,
     Telefón: contact.phone,
     message,
     botcheck: "",
   };
 
-  function postMail(body) {
-    return fetch("https://api.web3forms.com/submit", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(body),
-    }).then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.success === false) {
-        const err = new Error(data.message || "send failed");
-        err.payload = data;
-        throw err;
-      }
-      return data;
-    });
-  }
+  const shopSend = fetch("https://api.web3forms.com/submit", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(shopPayload),
+  }).then(async (res) => {
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.success === false) {
+      throw new Error(data.message || "shop send failed");
+    }
+    return data;
+  });
 
-  postMail(payload)
-    .catch(() => {
-      const retry = { ...payload };
-      delete retry.ccemail;
-      return postMail(retry);
-    })
-    .then(() => {
-      setBookStatus(
-        "Dopyt odišiel e-mailom.",
-        "Prevádzka dostala dopyt na info@jtpneu.sk. Kópia ide na váš e-mail. Termín ešte potvrdíme telefonicky alebo na WhatsApp."
-      );
-    })
-    .catch(() => {
-      setBookStatus(
-        "E-mail sa nepodarilo odoslať.",
-        "Skúste to znova, alebo odošlite dopyt cez WhatsApp."
-      );
+  const confirmSend = fetch(bookConfirmUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      name: contact.name,
+      email: contact.email,
+      phone: contact.phone,
+      message,
+      website: "",
+    }),
+  }).then(async (res) => {
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) {
+      throw new Error("confirm send failed");
+    }
+    return data;
+  });
+
+  Promise.allSettled([shopSend, confirmSend])
+    .then(([shop, confirm]) => {
+      const shopOk = shop.status === "fulfilled";
+      const confirmOk = confirm.status === "fulfilled";
+      if (shopOk && confirmOk) {
+        setBookStatus(
+          "Dopyt odišiel e-mailom.",
+          "Prevádzka dostala dopyt na info@jtpneu.sk. Na váš e-mail sme poslali potvrdenie. Termín ešte potvrdíme telefonicky alebo na WhatsApp."
+        );
+        return;
+      }
+      if (shopOk) {
+        setBookStatus(
+          "Dopyt odišiel e-mailom.",
+          "Prevádzka dostala dopyt na info@jtpneu.sk. Potvrdenie na váš e-mail sa nepodarilo odoslať. Termín overíme telefonicky alebo na WhatsApp."
+        );
+        return;
+      }
+      setBookStatus("E-mail sa nepodarilo odoslať.", "Skúste to znova, alebo odošlite dopyt cez WhatsApp.");
     })
     .finally(() => {
       if (emailBtn) emailBtn.disabled = false;
