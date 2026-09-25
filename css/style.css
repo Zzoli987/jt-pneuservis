@@ -827,9 +827,10 @@ p {
   line-height: 1.4;
 }
 
-.book-slot.is-break:disabled {
+.book-slot.is-taken:disabled {
   text-decoration: none;
-  opacity: 0.45;
+  opacity: 0.42;
+  background: #f3f1eb;
 }
 
 .book-slots-hint {

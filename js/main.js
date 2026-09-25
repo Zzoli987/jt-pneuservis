@@ -185,9 +185,9 @@ const bookHint = document.querySelector("[data-book-hint]");
 const bookForm = document.querySelector(".book");
 const bookSendButtons = document.querySelectorAll("[data-book-send]");
 const bookShopMail = "info@jtpneu.sk";
-const bookMailKey = "b50897b0-fa29-49e4-bda8-4fa5b72c8515";
 const bookConfirmUrls = ["https://form.jtpneu.sk/send.php", "http://form.jtpneu.sk/send.php"];
 const bookState = { service: "pneuservis", dateKey: "", time: "", carType: "" };
+let bookTaken = {};
 const bookTouched = {
   name: false,
   email: false,
@@ -265,13 +265,18 @@ function slotsForDay(dateKey) {
   if (!dateKey) return [];
   const now = bratislavaParts();
   const today = bratislavaYmd();
+  const takenTimes = bookTaken[dateKey] || [];
   return slotMinutesForDay(dateKey).map((minutes) => {
+    const label = `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
     const lunch = bookState.service === "pneuservis" && minutes === 12 * 60;
+    const taken = takenTimes.includes(label);
     return {
-      label: `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`,
+      label,
       past: dateKey === today && minutes <= now.minutes,
-      blocked: lunch,
-      reason: lunch ? "Obedňajšia prestávka 12:00 – 12:30" : "",
+      lunch,
+      taken,
+      blocked: lunch || taken,
+      reason: lunch ? "Obedňajšia prestávka 12:00 – 12:30" : taken ? "Obsadené" : "",
     };
   });
 }
@@ -395,13 +400,13 @@ function updateBookSummary() {
   const tried = Object.values(bookTouched).some(Boolean);
   if (ok) {
     bookChoice.textContent = formatChoice();
-    if (bookHint) bookHint.textContent = "Odošlite dopyt cez WhatsApp alebo e-mail — termín potvrdíme.";
+    if (bookHint) bookHint.textContent = "Odošlite rezerváciu cez WhatsApp alebo e-mail. Termín sa hneď obsadí.";
   } else if (tried && Object.values(bookTouched).filter(Boolean).length >= 2) {
     bookChoice.textContent = "Skontrolujte červené polia.";
-    if (bookHint) bookHint.textContent = "Doplňte chýbajúce údaje v správnom tvare, potom odošlite dopyt.";
+    if (bookHint) bookHint.textContent = "Doplňte chýbajúce údaje v správnom tvare, potom odošlite rezerváciu.";
   } else {
     bookChoice.textContent = "Vyplňte kontakt, vozidlo, deň a čas.";
-    if (bookHint) bookHint.textContent = "Potom odošlite dopyt cez WhatsApp alebo e-mail — termín potvrdíme.";
+    if (bookHint) bookHint.textContent = "Potom odošlite rezerváciu cez WhatsApp alebo e-mail. Termín sa hneď obsadí.";
   }
 }
 
@@ -429,7 +434,8 @@ function renderSlots() {
     btn.className = "book-slot";
     btn.textContent = slot.label;
     btn.disabled = slot.past || slot.blocked;
-    btn.classList.toggle("is-break", Boolean(slot.blocked));
+    btn.classList.toggle("is-break", Boolean(slot.lunch));
+    btn.classList.toggle("is-taken", Boolean(slot.taken));
     btn.classList.toggle("is-on", slot.label === bookState.time);
     if (slot.reason) btn.title = slot.reason;
     btn.addEventListener("click", () => {
@@ -611,6 +617,11 @@ document.querySelectorAll("[data-book-service]").forEach((btn) => {
 if (bookDaysEl && bookSlotsEl) {
   renderDays();
   renderSlots();
+  loadTaken();
+  setInterval(loadTaken, 30000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) loadTaken();
+  });
 }
 syncVehicleFields();
 
@@ -655,101 +666,106 @@ function setBookStatus(title, hint) {
   if (bookHint) bookHint.textContent = hint;
 }
 
-function sendBookingEmail(message, contact) {
-  const emailBtn = document.querySelector('[data-book-send="email"]');
-  if (emailBtn) emailBtn.disabled = true;
-  setBookStatus("Odosielam e-mail…", "Dopyt ide na prevádzku. Potvrdenie pošleme na váš e-mail.");
+function applyTaken(taken) {
+  if (!taken || typeof taken !== "object") return;
+  bookTaken = taken;
+  renderDays();
+  renderSlots();
+}
 
-  const shopPayload = {
-    access_key: bookMailKey,
-    subject: "Objednávka termínu — JT Pneuservis",
-    from_name: contact.name,
+function fetchBookApi(path, options) {
+  const urls = bookConfirmUrls.map((url) => `${url}${path}`);
+  return fetch(urls[0], options)
+    .then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      data.status = res.status;
+      if (!res.ok && res.status !== 409) throw new Error("request failed");
+      return data;
+    })
+    .catch(() =>
+      fetch(urls[1], options).then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        data.status = res.status;
+        if (!res.ok && res.status !== 409) throw new Error("request failed");
+        return data;
+      })
+    );
+}
+
+function loadTaken() {
+  return fetchBookApi("?action=taken")
+    .then((data) => {
+      if (data.taken) applyTaken(data.taken);
+    })
+    .catch(() => {});
+}
+
+function sendBookingRequest(channel) {
+  const emailBtn = document.querySelector('[data-book-send="email"]');
+  const waBtn = document.querySelector('[data-book-send="whatsapp"]');
+  if (emailBtn) emailBtn.disabled = true;
+  if (waBtn) waBtn.disabled = true;
+  setBookStatus("Odosielam rezerváciu…", "Termín sa hneď obsadí. Súhrn príde na váš e-mail.");
+
+  const { contact, vehicle } = bookFieldErrors();
+  const message = bookingMessage();
+  const payload = {
     name: contact.name,
     email: contact.email,
-    replyto: contact.email,
-    Telefón: contact.phone,
-    message,
-    botcheck: "",
+    phone: contact.phone,
+    brand: vehicle.brand,
+    type: vehicle.type,
+    service: bookState.service,
+    dateKey: bookState.dateKey,
+    time: bookState.time,
+    website: "",
   };
 
-  const shopSend = fetch("https://api.web3forms.com/submit", {
+  fetchBookApi("", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    body: JSON.stringify(shopPayload),
-  }).then(async (res) => {
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.success === false) {
-      throw new Error(data.message || "shop send failed");
-    }
-    return data;
-  });
-
-  function postConfirm(url) {
-    return fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        name: contact.name,
-        email: contact.email,
-        phone: contact.phone,
-        message,
-        website: "",
-      }),
-    }).then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.ok === false) {
-        throw new Error("confirm send failed");
-      }
-      return data;
-    });
-  }
-
-  const confirmSend = postConfirm(bookConfirmUrls[0]).catch(() => postConfirm(bookConfirmUrls[1]));
-
-  Promise.allSettled([shopSend, confirmSend])
-    .then(([shop, confirm]) => {
-      const shopOk = shop.status === "fulfilled";
-      const confirmOk = confirm.status === "fulfilled";
-      if (shopOk && confirmOk) {
-        setBookStatus(
-          "Dopyt odišiel e-mailom.",
-          "Prevádzka dostala dopyt na info@jtpneu.sk. Na váš e-mail sme poslali potvrdenie. Termín ešte potvrdíme telefonicky alebo na WhatsApp."
-        );
+    body: JSON.stringify(payload),
+  })
+    .then((data) => {
+      if (data.taken) applyTaken(data.taken);
+      if (data.error === "taken" || data.status === 409) {
+        bookState.time = "";
+        bookTouched.time = true;
+        renderSlots();
+        setBookStatus("Tento čas už je obsadený.", "Vyberte iný voľný termín a odošlite znova.");
         return;
       }
-      if (shopOk) {
-        setBookStatus(
-          "Dopyt odišiel e-mailom.",
-          "Prevádzka dostala dopyt na info@jtpneu.sk. Potvrdenie na váš e-mail sa nepodarilo odoslať. Termín overíme telefonicky alebo na WhatsApp."
-        );
-        return;
+      if (data.ok === false) {
+        throw new Error("book failed");
       }
-      setBookStatus("E-mail sa nepodarilo odoslať.", "Skúste to znova, alebo odošlite dopyt cez WhatsApp.");
+      if (channel === "whatsapp") {
+        window.open(`https://wa.me/421918762732?text=${encodeURIComponent(message)}`, "_blank", "noopener");
+      }
+      setBookStatus(
+        "Termín je rezervovaný.",
+        "Čas sme obsadili. Na váš e-mail sme poslali súhrn s odkazom na zrušenie."
+      );
+    })
+    .catch(() => {
+      setBookStatus("Rezerváciu sa nepodarilo odoslať.", "Skúste to znova, alebo zavolajte na 0918 762 732.");
     })
     .finally(() => {
       if (emailBtn) emailBtn.disabled = false;
+      if (waBtn) waBtn.disabled = false;
     });
 }
 
 function sendBooking(channel) {
   revealAllBookErrors();
-  const { ok, contact } = bookFieldErrors();
+  const { ok } = bookFieldErrors();
   if (!ok) {
     document.querySelector(".book-error:not([hidden])")?.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
-  const message = bookingMessage();
-  if (channel === "email") {
-    sendBookingEmail(message, contact);
-    return;
-  }
-  window.open(`https://wa.me/421918762732?text=${encodeURIComponent(message)}`, "_blank", "noopener");
+  sendBookingRequest(channel);
 }
 
 bookSendButtons.forEach((btn) => {
