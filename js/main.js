@@ -182,8 +182,19 @@ const bookDaysEl = document.querySelector("[data-book-days]");
 const bookSlotsEl = document.querySelector("[data-book-slots]");
 const bookChoice = document.querySelector("[data-book-choice]");
 const bookHint = document.querySelector("[data-book-hint]");
-const bookSend = document.querySelector("[data-book-send]");
+const bookForm = document.querySelector(".book");
+const bookSendButtons = document.querySelectorAll("[data-book-send]");
+const bookShopMail = "info@jtpneu.sk";
 const bookState = { service: "pneuservis", dateKey: "", time: "", carType: "" };
+const bookTouched = {
+  name: false,
+  email: false,
+  phone: false,
+  brand: false,
+  type: false,
+  day: false,
+  time: false,
+};
 
 const serviceLabel = {
   pneuservis: "Pneuservis",
@@ -287,15 +298,83 @@ function bookContact() {
   const name = document.querySelector("[data-book-name]")?.value.trim() || "";
   const email = document.querySelector("[data-book-email]")?.value.trim() || "";
   const phone = document.querySelector("[data-book-phone]")?.value.trim() || "";
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const phoneOk = phone.replace(/[^\d+]/g, "").length >= 9;
-  return { name, email, phone, ok: Boolean(name && emailOk && phoneOk) };
+  return { name, email, phone };
 }
 
 function bookVehicle() {
   const brand = document.querySelector("[data-book-brand]")?.value.trim() || "";
-  const typeOk = bookState.service !== "umyvaren" || Boolean(bookState.carType);
-  return { brand, type: bookState.carType, ok: Boolean(brand && typeOk) };
+  return { brand, type: bookState.carType };
+}
+
+function emailLooksOk(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+}
+
+function phoneLooksOk(phone) {
+  return phone.replace(/\D/g, "").length >= 9;
+}
+
+function bookFieldErrors() {
+  const contact = bookContact();
+  const vehicle = bookVehicle();
+  const errors = {};
+  if (!contact.name) errors.name = "Meno chýba. Napíšte ho, napr. Ján Novák.";
+  else if (contact.name.length < 2) errors.name = "Meno je príliš krátke. Napíšte celé meno, napr. Ján Novák.";
+  if (!contact.email) errors.email = "E-mail chýba. Má vyzerať ako meno@firma.sk.";
+  else if (!emailLooksOk(contact.email)) errors.email = "E-mail nie je v správnom tvare. Použite formát meno@firma.sk.";
+  if (!contact.phone) errors.phone = "Telefón chýba. Zadajte číslo, napr. 0918 123 456.";
+  else if (!phoneLooksOk(contact.phone)) errors.phone = "Telefón nie je v správnom tvare. Zadajte aspoň 9 číslic, napr. 0918 123 456.";
+  if (!vehicle.brand) errors.brand = "Značka auta chýba. Napíšte ju, napr. Škoda Octavia.";
+  if (bookState.service === "umyvaren" && !vehicle.type) {
+    errors.type = "Vyberte typ vozidla: osobné, SUV alebo dodávka.";
+  }
+  if (!bookState.dateKey) errors.day = "Deň chýba. Kliknite na deň v kalendári.";
+  if (!bookState.time) errors.time = "Čas chýba. Vyberte voľný termín.";
+  return { contact, vehicle, errors, ok: Object.keys(errors).length === 0 };
+}
+
+function paintBookErrors() {
+  const { errors } = bookFieldErrors();
+  ["name", "email", "phone", "brand", "type", "day", "time"].forEach((key) => {
+    const el = document.querySelector(`[data-book-error="${key}"]`);
+    if (!el) return;
+    const message = bookTouched[key] ? errors[key] || "" : "";
+    el.hidden = !message;
+    el.textContent = message;
+    const wrap = el.closest(".book-field, .book-block");
+    wrap?.classList.toggle("is-invalid", Boolean(message));
+  });
+  const nameInput = document.querySelector("[data-book-name]");
+  const emailInput = document.querySelector("[data-book-email]");
+  const phoneInput = document.querySelector("[data-book-phone]");
+  const brandInput = document.querySelector("[data-book-brand]");
+  [
+    [nameInput, "name"],
+    [emailInput, "email"],
+    [phoneInput, "phone"],
+    [brandInput, "brand"],
+  ].forEach(([input, key]) => {
+    if (!input) return;
+    const invalid = Boolean(bookTouched[key] && errors[key]);
+    input.classList.toggle("is-invalid", invalid);
+    input.setAttribute("aria-invalid", String(invalid));
+  });
+}
+
+function bookingMessage() {
+  const { contact, vehicle } = bookFieldErrors();
+  const text = formatChoice();
+  return [
+    "Dobrý deň, chcel by som sa objednať.",
+    text,
+    `Meno: ${contact.name}`,
+    `E-mail: ${contact.email}`,
+    `Telefón: ${contact.phone}`,
+    `Značka auta: ${vehicle.brand}`,
+    bookState.service === "umyvaren" ? `Typ: ${carTypeLabel[vehicle.type]}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function syncVehicleFields() {
@@ -308,31 +387,19 @@ function syncVehicleFields() {
 }
 
 function updateBookSummary() {
-  if (!bookChoice || !bookSend) return;
-  const contact = bookContact();
-  const vehicle = bookVehicle();
-  const ready = Boolean(bookState.dateKey && bookState.time && contact.ok && vehicle.ok);
-  bookSend.disabled = !ready;
-  if (ready) {
-    const text = formatChoice();
-    bookChoice.textContent = text;
-    if (bookHint) bookHint.textContent = "Odošlite dopyt na WhatsApp — termín potvrdíme.";
-    const message = [
-      "Dobrý deň, chcel by som sa objednať.",
-      text,
-      `Meno: ${contact.name}`,
-      `E-mail: ${contact.email}`,
-      `Telefón: ${contact.phone}`,
-      `Značka auta: ${vehicle.brand}`,
-      bookState.service === "umyvaren" ? `Typ: ${carTypeLabel[vehicle.type]}` : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
-    bookSend.dataset.href = `https://wa.me/421918762732?text=${encodeURIComponent(message)}`;
+  if (!bookChoice) return;
+  paintBookErrors();
+  const { ok } = bookFieldErrors();
+  const tried = Object.values(bookTouched).some(Boolean);
+  if (ok) {
+    bookChoice.textContent = formatChoice();
+    if (bookHint) bookHint.textContent = "Odošlite dopyt cez WhatsApp alebo e-mail — termín potvrdíme.";
+  } else if (tried && Object.values(bookTouched).filter(Boolean).length >= 2) {
+    bookChoice.textContent = "Skontrolujte červené polia.";
+    if (bookHint) bookHint.textContent = "Doplňte chýbajúce údaje v správnom tvare, potom odošlite dopyt.";
   } else {
     bookChoice.textContent = "Vyplňte kontakt, vozidlo, deň a čas.";
-    if (bookHint) bookHint.textContent = "Potom odošlite dopyt na WhatsApp — termín potvrdíme.";
-    bookSend.dataset.href = "https://wa.me/421918762732";
+    if (bookHint) bookHint.textContent = "Potom odošlite dopyt cez WhatsApp alebo e-mail — termín potvrdíme.";
   }
 }
 
@@ -366,6 +433,7 @@ function renderSlots() {
     btn.addEventListener("click", () => {
       if (slot.blocked) return;
       bookState.time = slot.label;
+      bookTouched.time = true;
       renderSlots();
       updateBookSummary();
     });
@@ -396,6 +464,8 @@ const maxCalMonth = shiftMonth(todayParts[0], todayParts[1], 3);
 function selectDay(dateKey) {
   bookState.dateKey = dateKey;
   bookState.time = "";
+  bookTouched.day = true;
+  bookTouched.time = false;
   renderDays();
   renderSlots();
 }
@@ -543,12 +613,26 @@ if (bookDaysEl && bookSlotsEl) {
 syncVehicleFields();
 
 document.querySelectorAll("[data-book-name], [data-book-email], [data-book-phone], [data-book-brand]").forEach((input) => {
-  input.addEventListener("input", updateBookSummary);
+  const key = input.hasAttribute("data-book-name")
+    ? "name"
+    : input.hasAttribute("data-book-email")
+      ? "email"
+      : input.hasAttribute("data-book-phone")
+        ? "phone"
+        : "brand";
+  input.addEventListener("input", () => {
+    if (bookTouched[key]) updateBookSummary();
+  });
+  input.addEventListener("blur", () => {
+    bookTouched[key] = true;
+    updateBookSummary();
+  });
 });
 
 document.querySelectorAll("[data-book-car-type]").forEach((btn) => {
   btn.addEventListener("click", () => {
     bookState.carType = btn.dataset.bookCarType;
+    bookTouched.type = true;
     document.querySelectorAll("[data-book-car-type]").forEach((item) => {
       item.classList.toggle("is-on", item === btn);
     });
@@ -556,8 +640,34 @@ document.querySelectorAll("[data-book-car-type]").forEach((btn) => {
   });
 });
 
-bookSend?.addEventListener("click", () => {
-  if (bookSend.disabled) return;
-  const href = bookSend.dataset.href;
-  if (href) window.open(href, "_blank", "noopener");
+function revealAllBookErrors() {
+  Object.keys(bookTouched).forEach((key) => {
+    bookTouched[key] = true;
+  });
+  if (bookState.service !== "umyvaren") bookTouched.type = false;
+  updateBookSummary();
+}
+
+function sendBooking(channel) {
+  revealAllBookErrors();
+  const { ok } = bookFieldErrors();
+  if (!ok) {
+    document.querySelector(".book-error:not([hidden])")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+  const message = bookingMessage();
+  const href =
+    channel === "email"
+      ? `mailto:${bookShopMail}?subject=${encodeURIComponent("Objednávka termínu — JT Pneuservis")}&body=${encodeURIComponent(message)}`
+      : `https://wa.me/421918762732?text=${encodeURIComponent(message)}`;
+  window.open(href, "_blank", "noopener");
+}
+
+bookSendButtons.forEach((btn) => {
+  btn.addEventListener("click", () => sendBooking(btn.dataset.bookSend));
+});
+
+bookForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  sendBooking("whatsapp");
 });

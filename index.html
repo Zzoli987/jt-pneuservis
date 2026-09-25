@@ -25,7 +25,7 @@
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/style.css?v=39" />
+    <link rel="stylesheet" href="css/style.css?v=40" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -254,24 +254,27 @@
         <div class="section-head section-head-center reveal">
           <p class="eyebrow">Termín</p>
           <h2>Objednajte sa</h2>
-          <p>Najprv vyplňte kontakt a vozidlo, potom vyberte deň a čas. Termín potvrdíme telefonicky alebo na WhatsApp.</p>
+          <p>Najprv vyplňte kontakt a vozidlo, potom vyberte deň a čas. Termín potvrdíme telefonicky, cez WhatsApp alebo e-mail.</p>
         </div>
 
-        <div class="book reveal">
+        <form class="book reveal" novalidate>
           <div class="book-block">
             <p class="book-label">Kontakt</p>
             <div class="book-fields">
               <label class="book-field">
                 Meno
-                <input type="text" name="name" autocomplete="name" data-book-name required />
+                <input type="text" name="name" autocomplete="name" placeholder="Ján Novák" aria-describedby="book-error-name" data-book-name required />
+                <span class="book-error" id="book-error-name" data-book-error="name" hidden></span>
               </label>
               <label class="book-field">
                 E-mail
-                <input type="email" name="email" autocomplete="email" data-book-email required />
+                <input type="email" name="email" autocomplete="email" placeholder="meno@firma.sk" aria-describedby="book-error-email" data-book-email required />
+                <span class="book-error" id="book-error-email" data-book-error="email" hidden></span>
               </label>
               <label class="book-field">
                 Telefón
-                <input type="tel" name="phone" autocomplete="tel" data-book-phone inputmode="tel" required />
+                <input type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="0918 123 456" aria-describedby="book-error-phone" data-book-phone required />
+                <span class="book-error" id="book-error-phone" data-book-error="phone" hidden></span>
               </label>
             </div>
           </div>
@@ -293,15 +296,17 @@
             <div class="book-vehicle">
               <label class="book-field">
                 Značka auta
-                <input type="text" name="car-brand" autocomplete="off" data-book-brand required />
+                <input type="text" name="car-brand" autocomplete="off" placeholder="Škoda Octavia" aria-describedby="book-error-brand" data-book-brand required />
+                <span class="book-error" id="book-error-brand" data-book-error="brand" hidden></span>
               </label>
               <div class="book-field" data-book-type-wrap hidden>
                 Typ vozidla
-                <div class="book-car-types" role="group" aria-label="Typ vozidla">
+                <div class="book-car-types" role="group" aria-label="Typ vozidla" aria-describedby="book-error-type">
                   <button class="book-service" type="button" data-book-car-type="osobne">Osobné vozidlo</button>
                   <button class="book-service" type="button" data-book-car-type="suv">SUV</button>
                   <button class="book-service" type="button" data-book-car-type="dodavka">Dodávka</button>
                 </div>
+                <span class="book-error" id="book-error-type" data-book-error="type" hidden></span>
               </div>
             </div>
           </div>
@@ -310,24 +315,27 @@
             <div class="book-block">
               <p class="book-label" id="book-day-label">Deň</p>
               <div class="book-cal" data-book-days role="group" aria-labelledby="book-day-label"></div>
+              <span class="book-error" id="book-error-day" data-book-error="day" hidden></span>
             </div>
             <div class="book-block">
               <p class="book-label" data-book-time-label>Čas · 30 minút</p>
               <div class="book-slots" data-book-slots></div>
               <p class="book-slots-note" data-book-break hidden>Pneuservis: obedňajšia prestávka 12:00 – 12:30.</p>
+              <span class="book-error" id="book-error-time" data-book-error="time" hidden></span>
             </div>
           </div>
 
           <div class="book-send">
             <p>
-              <strong data-book-choice>Vyplňte kontakt, deň a čas.</strong>
-              <span data-book-hint>Potom odošlite dopyt na WhatsApp — termín potvrdíme.</span>
+              <strong data-book-choice>Vyplňte kontakt, vozidlo, deň a čas.</strong>
+              <span data-book-hint>Potom odošlite dopyt cez WhatsApp alebo e-mail — termín potvrdíme.</span>
             </p>
             <div class="book-actions">
-              <button class="btn btn-gold" type="button" data-book-send disabled>Odoslať</button>
+              <button class="btn btn-gold" type="button" data-book-send="whatsapp">Odoslať cez WhatsApp</button>
+              <button class="btn btn-ghost" type="button" data-book-send="email">Odoslať e-mailom</button>
             </div>
           </div>
-        </div>
+        </form>
       </section>
 
       <section class="section section-hours" id="hodiny">
@@ -455,6 +463,6 @@
       <p>© <span data-year>2026</span> Jóba Tamás. Všetky práva vyhradené.</p>
     </footer>
 
-    <script src="js/main.js?v=39"></script>
+    <script src="js/main.js?v=40"></script>
   </body>
 </html>

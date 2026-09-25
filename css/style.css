@@ -920,6 +920,28 @@ p {
   border-color: var(--gold);
 }
 
+.book-error {
+  color: #c42b1c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.book-field input.is-invalid,
+.book-field input.is-invalid:focus {
+  border-color: #c42b1c;
+  outline-color: #c42b1c;
+}
+
+.book-field.is-invalid .book-car-types .book-service:not(.is-on) {
+  border-color: #c42b1c;
+}
+
+.book-block.is-invalid .book-cal,
+.book-block.is-invalid .book-slots {
+  border-color: #c42b1c;
+}
+
 .book-slot:disabled {
   opacity: 0.38;
   cursor: not-allowed;
@@ -944,16 +966,20 @@ p {
   margin-top: 0.25rem;
 }
 
-.book-send .btn-gold:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+.book-send .btn-ghost {
+  border-color: rgba(255, 255, 255, 0.72);
+  color: #fff;
+}
+
+.book-send .btn-ghost:hover {
+  background: #fff;
+  color: #111;
 }
 
 .book-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.7rem;
 }
 
@@ -1336,6 +1362,14 @@ p {
 
   .book-slots {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .book-actions {
+    width: 100%;
+  }
+
+  .book-actions .btn {
+    flex: 1 1 12rem;
   }
 
   .book-cal-day,
