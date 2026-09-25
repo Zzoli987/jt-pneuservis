@@ -618,10 +618,13 @@ if (bookDaysEl && bookSlotsEl) {
   renderDays();
   renderSlots();
   loadTaken();
-  setInterval(loadTaken, 30000);
+  setInterval(loadTaken, 15000);
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) loadTaken();
   });
+  if (/[?&]freed=1/.test(location.search)) {
+    setBookStatus("Termín bol zrušený.", "Čas je znova voľný.");
+  }
 }
 syncVehicleFields();
 
@@ -674,8 +677,10 @@ function applyTaken(taken) {
 }
 
 function fetchBookApi(path, options) {
-  const urls = bookConfirmUrls.map((url) => `${url}${path}`);
-  return fetch(urls[0], options)
+  const stamp = path.indexOf("?") >= 0 ? "&t=" + Date.now() : "?t=" + Date.now();
+  const urls = bookConfirmUrls.map((url) => `${url}${path}${stamp}`);
+  const opts = Object.assign({ cache: "no-store" }, options || {});
+  return fetch(urls[0], opts)
     .then(async (res) => {
       const data = await res.json().catch(() => ({}));
       data.status = res.status;
@@ -683,7 +688,7 @@ function fetchBookApi(path, options) {
       return data;
     })
     .catch(() =>
-      fetch(urls[1], options).then(async (res) => {
+      fetch(urls[1], opts).then(async (res) => {
         const data = await res.json().catch(() => ({}));
         data.status = res.status;
         if (!res.ok && res.status !== 409) throw new Error("request failed");

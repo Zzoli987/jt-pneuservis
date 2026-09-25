@@ -19,6 +19,7 @@ if (in_array($origin, $allowed, true)) {
 }
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
+header("Cache-Control: no-store, no-cache, must-revalidate");
 
 if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
   http_response_code(204);
@@ -26,8 +27,13 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 }
 
 $action = isset($_GET["action"]) ? (string) $_GET["action"] : "";
+$method = $_SERVER["REQUEST_METHOD"];
 
-if ($_SERVER["REQUEST_METHOD"] === "GET" && ($action === "cancel" || $action === "admin")) {
+if (in_array($method, ["GET", "HEAD", "POST"], true) && ($action === "cancel" || $action === "admin")) {
+  if ($method === "POST") {
+    $_GET["id"] = isset($_POST["id"]) ? $_POST["id"] : (isset($_GET["id"]) ? $_GET["id"] : "");
+    $_GET["token"] = isset($_POST["token"]) ? $_POST["token"] : (isset($_GET["token"]) ? $_GET["token"] : "");
+  }
   jt_handle_cancel($action === "admin" ? "admin" : "customer");
   exit;
 }
@@ -138,10 +144,11 @@ function jt_save($data)
     }
     $kept[] = $row;
   }
-  $data["bookings"] = $kept;
+  $data["bookings"] = array_values($kept);
   $export = var_export($data, true);
   $php = "<?php\nif (!defined('JT_BOOK')) { http_response_code(403); exit; }\nreturn " . $export . ";\n";
-  file_put_contents(jt_store_path(), $php, LOCK_EX);
+  $ok = file_put_contents(jt_store_path(), $php, LOCK_EX);
+  return $ok !== false;
 }
 
 function jt_update($mutator)
@@ -153,9 +160,11 @@ function jt_update($mutator)
   }
   flock($lock, LOCK_EX);
   $data = jt_load();
-  $result = $mutator($data);
-  if (!empty($result["ok"])) {
-    jt_save($data);
+  $result = call_user_func_array($mutator, array(&$data));
+  if (!empty($result["ok"]) && empty($result["already"])) {
+    if (!jt_save($data)) {
+      $result = ["ok" => false, "error" => "save"];
+    }
   }
   flock($lock, LOCK_UN);
   fclose($lock);
@@ -324,7 +333,7 @@ function jt_mail_customer($booking)
 {
   global $base;
   $when = jt_h(jt_when_label($booking));
-  $link = jt_h($base . "?action=cancel&id=" . rawurlencode($booking["id"]) . "&token=" . rawurlencode($booking["cancel"]));
+  $link = jt_h($base . "?action=cancel&id=" . rawurlencode($booking["id"]) . "&token=" . rawurlencode($booking["cancel"]) . "&k=" . rawurlencode($booking["id"] . "." . $booking["cancel"]));
   $html = '<p>Dobrý deň,</p><p>váš termín v JT Pneuservis &amp; Autoumyváreň je rezervovaný.</p><p><strong>' . $when . '</strong></p><p>Meno: ' . jt_h($booking["name"]) . '<br>Telefón: ' . jt_h($booking["phone"]) . '<br>Značka auta: ' . jt_h($booking["brand"]) . ( $booking["carType"] ? '<br>Typ: ' . jt_h(jt_car_label($booking["carType"])) : "" ) . '</p><p><a href="' . $link . '">Zrušiť termín</a></p><p>JT Pneuservis &amp; Autoumyváreň<br>Šurianska cesta 21.A, 940 01 Nové Zámky<br>+421 918 762 732 · +421 949 134 507</p>';
   jt_send_mail($booking["email"], "Termín je rezervovaný — JT Pneuservis", $html);
 }
@@ -333,7 +342,7 @@ function jt_mail_shop($booking)
 {
   global $base;
   $when = jt_h(jt_when_label($booking));
-  $link = jt_h($base . "?action=admin&id=" . rawurlencode($booking["id"]) . "&token=" . rawurlencode($booking["admin"]));
+  $link = jt_h($base . "?action=admin&id=" . rawurlencode($booking["id"]) . "&token=" . rawurlencode($booking["admin"]) . "&k=" . rawurlencode($booking["id"] . "." . $booking["admin"]));
   $html = '<p>Nový termín:</p><p><strong>' . $when . '</strong></p><p>Meno: ' . jt_h($booking["name"]) . '<br>E-mail: ' . jt_h($booking["email"]) . '<br>Telefón: ' . jt_h($booking["phone"]) . '<br>Značka auta: ' . jt_h($booking["brand"]) . ( $booking["carType"] ? '<br>Typ: ' . jt_h(jt_car_label($booking["carType"])) : "" ) . '</p><p><a href="' . $link . '">Zrušiť termín a uvoľniť čas</a></p>';
   jt_send_mail("info@jtpneu.sk", "Nový termín — JT Pneuservis", $html);
 }
@@ -346,30 +355,36 @@ function jt_page($title, $text)
 
 function jt_handle_cancel($who)
 {
-  $id = isset($_GET["id"]) ? (string) $_GET["id"] : "";
-  $token = isset($_GET["token"]) ? (string) $_GET["token"] : "";
+  $id = isset($_GET["id"]) ? preg_replace("/[^a-f0-9]/i", "", (string) $_GET["id"]) : "";
+  $token = isset($_GET["token"]) ? preg_replace("/[^a-f0-9]/i", "", (string) $_GET["token"]) : "";
+  if (isset($_GET["k"]) && is_string($_GET["k"])) {
+    $parts = explode(".", preg_replace("/[^a-f0-9.]/i", "", $_GET["k"]), 2);
+    if (count($parts) === 2) {
+      $id = $parts[0];
+      $token = $parts[1];
+    }
+  }
   if ($id === "" || $token === "") {
     jt_page("Odkaz nie je platný", "Tento odkaz na zrušenie termínu nie je správny.");
     return;
   }
   $result = jt_update(function (&$data) use ($id, $token, $who) {
-    foreach ($data["bookings"] as &$row) {
+    foreach ($data["bookings"] as $index => $row) {
       if (($row["id"] ?? "") !== $id) {
         continue;
       }
-      $expected = $who === "admin" ? ($row["admin"] ?? "") : ($row["cancel"] ?? "");
+      $expected = $who === "admin" ? (string) ($row["admin"] ?? "") : (string) ($row["cancel"] ?? "");
       if ($expected === "" || !hash_equals($expected, $token)) {
         return ["ok" => false, "error" => "token"];
       }
       if (($row["status"] ?? "") !== "active") {
         return ["ok" => true, "already" => true, "booking" => $row, "who" => $who];
       }
-      $row["status"] = "cancelled";
-      $row["cancelledBy"] = $who;
-      $row["cancelledAt"] = time();
-      return ["ok" => true, "booking" => $row, "who" => $who];
+      $data["bookings"][$index]["status"] = "cancelled";
+      $data["bookings"][$index]["cancelledBy"] = $who;
+      $data["bookings"][$index]["cancelledAt"] = time();
+      return ["ok" => true, "booking" => $data["bookings"][$index], "who" => $who];
     }
-    unset($row);
     return ["ok" => false, "error" => "missing"];
   });
 
@@ -377,20 +392,19 @@ function jt_handle_cancel($who)
     jt_page("Odkaz nie je platný", "Tento odkaz na zrušenie termínu nie je správny.");
     return;
   }
-  if (!empty($result["already"])) {
-    jt_page("Termín je zrušený", "Tento termín už je zrušený. Čas je voľný.");
-    return;
-  }
 
   $booking = $result["booking"];
   $when = jt_when_label($booking);
-  if ($who === "admin") {
-    $html = '<p>Dobrý deň,</p><p>váš termín bol zrušený.</p><p><strong>' . jt_h($when) . '</strong></p><p>Ak chcete iný čas, objednajte sa znova na jtpneu.sk.</p>';
-    jt_send_mail($booking["email"], "Termín zrušený — JT Pneuservis", $html);
-    jt_page("Termín zrušený", "Termín sme zrušili. Čas je znova voľný.");
-    return;
+  if (empty($result["already"])) {
+    if ($who === "admin") {
+      $html = '<p>Dobrý deň,</p><p>váš termín bol zrušený.</p><p><strong>' . jt_h($when) . '</strong></p><p>Ak chcete iný čas, objednajte sa znova na jtpneu.sk.</p>';
+      jt_send_mail($booking["email"], "Termín zrušený — JT Pneuservis", $html);
+    } else {
+      $html = '<p>Zákazník zrušil termín:</p><p><strong>' . jt_h($when) . '</strong></p><p>Meno: ' . jt_h($booking["name"]) . '<br>E-mail: ' . jt_h($booking["email"]) . '<br>Telefón: ' . jt_h($booking["phone"]) . '</p>';
+      jt_send_mail("info@jtpneu.sk", "Termín zrušený zákazníkom — JT Pneuservis", $html);
+    }
   }
-  $html = '<p>Zákazník zrušil termín:</p><p><strong>' . jt_h($when) . '</strong></p><p>Meno: ' . jt_h($booking["name"]) . '<br>E-mail: ' . jt_h($booking["email"]) . '<br>Telefón: ' . jt_h($booking["phone"]) . '</p>';
-  jt_send_mail("info@jtpneu.sk", "Termín zrušený zákazníkom — JT Pneuservis", $html);
-  jt_page("Termín zrušený", "Váš termín sme zrušili. Čas je znova voľný.");
+
+  header("Location: https://jtpneu.sk/?freed=1#termin", true, 303);
+  jt_page("Termín zrušený", "Čas je znova voľný. Obnovte stránku jtpneu.sk, ak sa nenačítala sama.");
 }
