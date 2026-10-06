@@ -80,7 +80,11 @@ $created = jt_update(function (&$data) use ($booking) {
     if (($row["status"] ?? "") !== "active") {
       continue;
     }
-    if (($row["dateKey"] ?? "") === $booking["dateKey"] && ($row["time"] ?? "") === $booking["time"]) {
+    if (
+      ($row["service"] ?? "pneuservis") === $booking["service"] &&
+      ($row["dateKey"] ?? "") === $booking["dateKey"] &&
+      ($row["time"] ?? "") === $booking["time"]
+    ) {
       return ["ok" => false, "error" => "taken"];
     }
   }
@@ -173,21 +177,24 @@ function jt_update($mutator)
 
 function jt_taken_map($bookings)
 {
-  $out = [];
+  $out = ["pneuservis" => [], "umyvaren" => []];
   $today = date("Y-m-d");
   foreach ($bookings as $row) {
     if (($row["status"] ?? "") !== "active") {
       continue;
     }
+    $service = ($row["service"] ?? "") === "umyvaren" ? "umyvaren" : "pneuservis";
     $dateKey = $row["dateKey"] ?? "";
     $time = $row["time"] ?? "";
     if ($dateKey < $today || $time === "") {
       continue;
     }
-    $out[$dateKey][] = $time;
+    $out[$service][$dateKey][] = $time;
   }
-  foreach ($out as $dateKey => $times) {
-    $out[$dateKey] = array_values(array_unique($times));
+  foreach ($out as $service => $days) {
+    foreach ($days as $dateKey => $times) {
+      $out[$service][$dateKey] = array_values(array_unique($times));
+    }
   }
   return $out;
 }

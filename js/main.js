@@ -187,7 +187,7 @@ const bookSendButtons = document.querySelectorAll("[data-book-send]");
 const bookShopMail = "info@jtpneu.sk";
 const bookConfirmUrls = ["https://form.jtpneu.sk/send.php", "http://form.jtpneu.sk/send.php"];
 const bookState = { service: "pneuservis", dateKey: "", time: "", carType: "" };
-let bookTaken = {};
+let bookTaken = { pneuservis: {}, umyvaren: {} };
 const bookTouched = {
   name: false,
   email: false,
@@ -261,11 +261,19 @@ function slotMinutesForDay(dateKey) {
   return minutes;
 }
 
+function takenTimesFor(dateKey) {
+  const byService = bookTaken[bookState.service];
+  if (byService && typeof byService === "object" && !Array.isArray(byService)) {
+    return byService[dateKey] || [];
+  }
+  return bookTaken[dateKey] || [];
+}
+
 function slotsForDay(dateKey) {
   if (!dateKey) return [];
   const now = bratislavaParts();
   const today = bratislavaYmd();
-  const takenTimes = bookTaken[dateKey] || [];
+  const takenTimes = takenTimesFor(dateKey);
   return slotMinutesForDay(dateKey).map((minutes) => {
     const label = `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
     const lunch = bookState.service === "pneuservis" && minutes === 12 * 60;
