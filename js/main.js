@@ -278,13 +278,20 @@ function slotsForDay(dateKey) {
     const label = `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
     const lunch = bookState.service === "pneuservis" && minutes === 12 * 60;
     const taken = takenTimes.includes(label);
+    const tooSoon = dateKey === today && minutes <= now.minutes + 30;
     return {
       label,
-      past: dateKey === today && minutes <= now.minutes,
+      past: tooSoon,
       lunch,
       taken,
       blocked: lunch || taken,
-      reason: lunch ? "Obedňajšia prestávka 12:00 – 12:30" : taken ? "Obsadené" : "",
+      reason: lunch
+        ? "Obedňajšia prestávka 12:00 – 12:30"
+        : taken
+          ? "Obsadené"
+          : tooSoon
+            ? "Termín je do 30 minút, preto nie je voľný."
+            : "",
     };
   });
 }
@@ -447,7 +454,7 @@ function renderSlots() {
     btn.classList.toggle("is-on", slot.label === bookState.time);
     if (slot.reason) btn.title = slot.reason;
     btn.addEventListener("click", () => {
-      if (slot.blocked) return;
+      if (slot.past || slot.blocked) return;
       bookState.time = slot.label;
       bookTouched.time = true;
       renderSlots();
@@ -627,6 +634,15 @@ if (bookDaysEl && bookSlotsEl) {
   renderSlots();
   loadTaken();
   setInterval(loadTaken, 15000);
+  let cutoffMark = "";
+  setInterval(() => {
+    const now = bratislavaParts();
+    const mark = `${bratislavaYmd()}:${now.minutes}`;
+    if (mark === cutoffMark) return;
+    cutoffMark = mark;
+    renderDays();
+    renderSlots();
+  }, 1000);
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) loadTaken();
   });

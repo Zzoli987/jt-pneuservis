@@ -249,6 +249,18 @@ function jt_normalize($payload)
   ];
 }
 
+function jt_too_soon($dateKey, $time)
+{
+  if (!preg_match("/^\d{4}-\d{2}-\d{2}$/", $dateKey) || !preg_match("/^\d{2}:\d{2}$/", $time)) {
+    return true;
+  }
+  $slot = strtotime($dateKey . " " . $time . ":00");
+  if ($slot === false) {
+    return true;
+  }
+  return $slot <= time() + 30 * 60;
+}
+
 function jt_validate($booking)
 {
   if (jt_len($booking["name"]) < 2 || jt_len($booking["name"]) > 120) {
@@ -272,7 +284,7 @@ function jt_validate($booking)
   if (!in_array($booking["time"], jt_allowed_times($booking["service"], $booking["dateKey"]), true)) {
     return true;
   }
-  if ($booking["dateKey"] === date("Y-m-d") && $booking["time"] <= date("H:i")) {
+  if (jt_too_soon($booking["dateKey"], $booking["time"])) {
     return true;
   }
   if ($booking["service"] === "umyvaren" && !in_array($booking["carType"], ["osobne", "suv", "dodavka"], true)) {
